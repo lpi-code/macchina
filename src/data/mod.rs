@@ -571,8 +571,22 @@ fn get_glibc_version() -> Result<String, ReadoutError> {
         .map_err(|e| ReadoutError::Other(format!("Invalid UTF-8 in ldd output: {}", e)))?;
 
     // Parse the first line which typically contains the version
-    // Example: "ldd (GNU libc) 2.31"
+    // Example: "ldd (Ubuntu GLIBC 2.39-0ubuntu8.7) 2.39"
+    // We want to extract the detailed version from parentheses if available
     if let Some(first_line) = stdout.lines().next() {
+        // Check if there's a detailed version in parentheses (e.g., Ubuntu GLIBC 2.39-0ubuntu8.7)
+        if let Some(paren_content) = first_line.split('(').nth(1) {
+            if let Some(detailed_version) = paren_content.split(')').next() {
+                // Look for a version pattern like "2.39-0ubuntu8.7" in the parentheses content
+                for part in detailed_version.split_whitespace() {
+                    if part.contains('.') && (part.contains('-') || part.chars().next().map_or(false, |c| c.is_ascii_digit())) {
+                        return Ok(part.to_string());
+                    }
+                }
+            }
+        }
+        
+        // Fallback: extract the simple version after the parentheses
         if let Some(version_part) = first_line.split(')').nth(1) {
             let version = version_part.trim();
             if !version.is_empty() {
