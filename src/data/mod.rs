@@ -581,7 +581,7 @@ fn get_glibc_version() -> Result<String, ReadoutError> {
                 for part in detailed_version.split_whitespace() {
                     if part.contains('.')
                         && (part.contains('-')
-                            || part.chars().next().map_or(false, |c| c.is_ascii_digit()))
+                            || part.chars().next().is_some_and(|c| c.is_ascii_digit()))
                     {
                         return Ok(part.to_string());
                     }
