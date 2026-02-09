@@ -354,7 +354,7 @@ impl Keys {
         if let Some(k) = &self.kernel {
             return k;
         }
-        
+
         "Kernel"
     }
     pub fn get_glibc_version(&self) -> &str {
@@ -364,7 +364,7 @@ impl Keys {
 
         "Glibc"
     }
-    
+
     pub fn get_battery(&self) -> &str {
         if let Some(b) = &self.battery {
             return b;
@@ -508,5 +508,4 @@ impl Keys {
 
         "Disk Space"
     }
-
 }

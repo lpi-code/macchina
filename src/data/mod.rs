@@ -579,13 +579,16 @@ fn get_glibc_version() -> Result<String, ReadoutError> {
             if let Some(detailed_version) = paren_content.split(')').next() {
                 // Look for a version pattern like "2.39-0ubuntu8.7" in the parentheses content
                 for part in detailed_version.split_whitespace() {
-                    if part.contains('.') && (part.contains('-') || part.chars().next().map_or(false, |c| c.is_ascii_digit())) {
+                    if part.contains('.')
+                        && (part.contains('-')
+                            || part.chars().next().map_or(false, |c| c.is_ascii_digit()))
+                    {
                         return Ok(part.to_string());
                     }
                 }
             }
         }
-        
+
         // Fallback: extract the simple version after the parentheses
         if let Some(version_part) = first_line.split(')').nth(1) {
             let version = version_part.trim();
