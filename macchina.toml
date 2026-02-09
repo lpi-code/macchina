@@ -38,6 +38,7 @@ physical_cores = true
 #   - Host
 #   - Machine
 #   - Kernel
+#   - Glibc
 #   - Distribution
 #   - OperatingSystem
 #   - DesktopEnvironment

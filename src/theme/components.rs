@@ -292,6 +292,7 @@ impl Bar {
 pub struct Keys {
     pub host: Option<String>,
     pub kernel: Option<String>,
+    pub glibc: Option<String>,
     pub battery: Option<String>,
     pub os: Option<String>,
     pub de: Option<String>,
@@ -317,6 +318,7 @@ impl Default for Keys {
         Self {
             host: Some(String::from("Host")),
             kernel: Some(String::from("Kernel")),
+            glibc: Some(String::from("Glibc")),
             battery: Some(String::from("Battery")),
             os: Some(String::from("OS")),
             de: Some(String::from("DE")),
@@ -352,10 +354,17 @@ impl Keys {
         if let Some(k) = &self.kernel {
             return k;
         }
-
+        
         "Kernel"
     }
+    pub fn get_glibc_version(&self) -> &str {
+        if let Some(g) = &self.glibc {
+            return g;
+        }
 
+        "Glibc"
+    }
+    
     pub fn get_battery(&self) -> &str {
         if let Some(b) = &self.battery {
             return b;
@@ -499,4 +508,5 @@ impl Keys {
 
         "Disk Space"
     }
+
 }

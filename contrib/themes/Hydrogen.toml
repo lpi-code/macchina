@@ -33,6 +33,7 @@ separator_color = false
 [keys]
 host            = "Host"
 kernel          = "Kernel"
+glibc           = "Glibc"
 battery         = "Battery"
 os              = "OS"
 de              = "DE"

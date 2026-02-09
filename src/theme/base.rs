@@ -198,6 +198,7 @@ impl Theme {
         match *readout_key {
             ReadoutKey::Host => self.keys.get_host(),
             ReadoutKey::Kernel => self.keys.get_kernel(),
+            ReadoutKey::Glibc => self.keys.get_glibc_version(),
             ReadoutKey::OperatingSystem => self.keys.get_os(),
             ReadoutKey::Machine => self.keys.get_machine(),
             ReadoutKey::Distribution => self.keys.get_distro(),

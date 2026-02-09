@@ -80,6 +80,7 @@ on performance.
 	- Host
 	- Machine
 	- Kernel
+	- Glibc
 	- Distribution
 	- OperatingSystem
 	- DesktopEnvironment

@@ -36,6 +36,7 @@ pub enum ReadoutKey {
     Battery,
     GPU,
     DiskSpace,
+    Glibc,
 }
 
 impl Display for ReadoutKey {
@@ -44,6 +45,7 @@ impl Display for ReadoutKey {
             Self::Host => write!(f, "Host"),
             Self::Machine => write!(f, "Machine"),
             Self::Kernel => write!(f, "Kernel"),
+            Self::Glibc => write!(f, "Glibc"),
             Self::Distribution => write!(f, "Distribution"),
             Self::OperatingSystem => write!(f, "OperatingSystem"),
             Self::DesktopEnvironment => write!(f, "DesktopEnvironment"),
@@ -164,6 +166,7 @@ pub fn get_all_readouts<'a>(
             ReadoutKey::Host => handle_readout_host(&mut readout_values, &general_readout),
             ReadoutKey::Machine => handle_readout_machine(&mut readout_values, &general_readout),
             ReadoutKey::Kernel => handle_readout_kernel(&mut readout_values, opt),
+            ReadoutKey::Glibc => handle_readout_glibc(&mut readout_values),
             ReadoutKey::OperatingSystem => {
                 handle_readout_operating_system(&mut readout_values, &general_readout)
             }
@@ -540,4 +543,45 @@ fn handle_readout_disk_space(
             Err(e) => readout_values.push(Readout::new_err(ReadoutKey::DiskSpace, e)),
         }
     }
+}
+
+fn handle_readout_glibc(readout_values: &mut Vec<Readout>) {
+    match get_glibc_version() {
+        Ok(version) => readout_values.push(Readout::new(ReadoutKey::Glibc, version)),
+        Err(e) => readout_values.push(Readout::new_err(ReadoutKey::Glibc, e)),
+    }
+}
+
+fn get_glibc_version() -> Result<String, ReadoutError> {
+    use std::process::Command;
+
+    // Try to get glibc version using ldd --version
+    let output = Command::new("ldd")
+        .arg("--version")
+        .output()
+        .map_err(|e| ReadoutError::Other(format!("Failed to execute ldd: {}", e)))?;
+
+    if !output.status.success() {
+        return Err(ReadoutError::Other(
+            "Failed to get glibc version".to_string(),
+        ));
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|e| ReadoutError::Other(format!("Invalid UTF-8 in ldd output: {}", e)))?;
+
+    // Parse the first line which typically contains the version
+    // Example: "ldd (GNU libc) 2.31"
+    if let Some(first_line) = stdout.lines().next() {
+        if let Some(version_part) = first_line.split(')').nth(1) {
+            let version = version_part.trim();
+            if !version.is_empty() {
+                return Ok(version.to_string());
+            }
+        }
+    }
+
+    Err(ReadoutError::Other(
+        "Could not parse glibc version".to_string(),
+    ))
 }

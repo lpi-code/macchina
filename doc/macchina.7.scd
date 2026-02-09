@@ -224,6 +224,11 @@ Defines the text of the Kernel readout, e.g.:
 
 	kernel = "Kernel"
 
+## glibc
+Defines the text of the Glibc readout, e.g.:
+
+	glibc = "Glibc"
+
 ## os
 Defines the text of the OperatingSystem readout, e.g.:
 
