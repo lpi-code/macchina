@@ -10,6 +10,7 @@ mod doctor;
 mod error;
 mod extra;
 mod format;
+mod kitty;
 pub mod theme;
 pub mod widgets;
 
@@ -55,7 +56,57 @@ fn main() -> Result<()> {
     let prefers_small_ascii =
         readout_data.len() < MINIMUM_READOUTS_TO_PREFER_SMALL_ASCII || theme.prefers_small_ascii();
 
-    if theme.is_ascii_visible() {
+    let image_cols = opt.image_size.unwrap_or(20);
+    let image_rows = (readout_data.len() as u16 + 2).max(10);
+
+    // Resolve the image path and decide the rendering backend.
+    // Chafa output is captured here so we can inject it directly to stdout after ratatui renders,
+    // bypassing the ratatui buffer (which loses 24-bit background colors).
+    enum ImageMode {
+        Kitty(std::path::PathBuf),
+        Chafa(Vec<u8>),
+        None,
+    }
+
+    let image_mode = match &opt.image {
+        Some(p) => {
+            let expanded = shellexpand::tilde(&p.to_string_lossy()).to_string();
+            let path = std::path::PathBuf::from(expanded);
+            if opt.force_kitty || kitty::is_supported() {
+                ImageMode::Kitty(path)
+            } else if which_chafa() {
+                let size_arg = format!("{}x{}", image_cols, image_rows);
+                // Windows Terminal supports sixel graphics (added in 1.22).
+                // Other terminals without kitty fall back to Unicode block symbols.
+                let fmt = if std::env::var("WT_SESSION").is_ok() { "sixels" } else { "symbols" };
+                match std::process::Command::new("chafa")
+                    .args([
+                        "--size", &size_arg,
+                        "--format", fmt,
+                        "--passthrough", "none",
+                        path.to_str().unwrap_or(""),
+                    ])
+                    .output()
+                {
+                    Ok(out) if !out.stdout.is_empty() => ImageMode::Chafa(out.stdout),
+                    _ => ImageMode::None,
+                }
+            } else {
+                ImageMode::None
+            }
+        }
+        None => ImageMode::None,
+    };
+
+    match &image_mode {
+        ImageMode::Kitty(_) | ImageMode::Chafa(_) => {
+            // Reserve blank space; the image is injected directly to stdout after ratatui renders.
+            ascii_area = Rect::new(1, 1, image_cols, image_rows);
+        }
+        ImageMode::None => {}
+    }
+
+    if matches!(image_mode, ImageMode::None) && theme.is_ascii_visible() {
         if let Some(path) = theme.get_custom_ascii().get_path() {
             let expanded = shellexpand::tilde(&path.to_string_lossy()).to_string();
             let file_path = std::path::PathBuf::from(expanded);
@@ -95,12 +146,43 @@ fn main() -> Result<()> {
         ),
     );
 
-    buffer::write_buffer_to_console(&mut backend, &mut tmp_buffer)?;
+    let skip = if matches!(image_mode, ImageMode::Kitty(_) | ImageMode::Chafa(_)) {
+        Some(ascii_area)
+    } else {
+        None
+    };
+    let starting_pos = buffer::write_buffer_to_console(&mut backend, &mut tmp_buffer, skip)?;
 
     backend.flush()?;
+
+    // Both kitty and chafa inject directly to stdout so the full ANSI output reaches the terminal.
+    // ascii_area starts at buffer (x=1, y=1); terminal coords are 1-indexed → (starting_pos+2, 2).
+    let term_row = starting_pos + 2;
+    match &image_mode {
+        ImageMode::Kitty(ref img_path) => {
+            if let Err(e) = kitty::render(img_path, image_cols, ascii_area.height, term_row, 2) {
+                eprintln!("macchina: kitty image error: {e}");
+            }
+        }
+        ImageMode::Chafa(ref chafa_bytes) => {
+            if let Err(e) = kitty::render_chafa(chafa_bytes, term_row, 2) {
+                eprintln!("macchina: chafa render error: {e}");
+            }
+        }
+        ImageMode::None => {}
+    }
+
     print!("\n\n");
 
     Ok(())
+}
+
+fn which_chafa() -> bool {
+    std::process::Command::new("which")
+        .arg("chafa")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 fn get_version() {

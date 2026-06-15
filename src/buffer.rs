@@ -83,7 +83,8 @@ pub fn draw_readout_data(data: Vec<Readout>, theme: Theme, buf: &mut Buffer, are
 pub fn write_buffer_to_console(
     backend: &mut CrosstermBackend<Stdout>,
     tmp_buffer: &mut Buffer,
-) -> Result<(), io::Error> {
+    skip_rect: Option<Rect>,
+) -> Result<u16, io::Error> {
     let term_size = backend.size().unwrap_or_default();
 
     let (_, last_y) = find_last_buffer_cell_index(tmp_buffer)
@@ -126,8 +127,13 @@ pub fn write_buffer_to_console(
             (x, y, cell)
         })
         .filter(|(x, y, _)| *x < last_x && *x < term_size.width && *y <= last_y)
+        .filter(|(x, y, _)| {
+            skip_rect.map_or(true, |r| {
+                *x < r.x || *x >= r.x + r.width || *y < r.y || *y >= r.y + r.height
+            })
+        })
         .map(|(x, y, cell)| (x, y + starting_pos, cell));
 
     backend.draw(iter)?;
-    Ok(())
+    Ok(starting_pos)
 }

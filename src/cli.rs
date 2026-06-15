@@ -112,6 +112,25 @@ pub struct Opt {
         help = "Specify the network interface for the LocalIP readout"
     )]
     pub interface: Option<String>,
+
+    #[clap(
+        long = "image",
+        short = 'I',
+        help = "Path to an image to display using the Kitty graphics protocol"
+    )]
+    pub image: Option<std::path::PathBuf>,
+
+    #[clap(
+        long = "image-size",
+        help = "Image width in terminal columns (default: 20)"
+    )]
+    pub image_size: Option<u16>,
+
+    #[clap(
+        long = "kitty",
+        help = "Force Kitty graphics protocol regardless of terminal detection"
+    )]
+    pub force_kitty: bool,
 }
 
 impl Opt {
@@ -178,6 +197,18 @@ impl Opt {
 
         if args.disks.is_some() {
             self.disks = args.disks
+        }
+
+        if args.image.is_some() {
+            self.image = args.image;
+        }
+
+        if args.image_size.is_some() {
+            self.image_size = args.image_size;
+        }
+
+        if args.force_kitty {
+            self.force_kitty = true;
         }
     }
 

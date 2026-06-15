@@ -62,6 +62,10 @@ pub fn select_ascii(ascii_size: AsciiSize) -> Option<Text<'static>> {
     Some(ascii_art[0].to_owned())
 }
 
+pub fn get_ascii_from_bytes(bytes: Vec<u8>) -> Text<'static> {
+    bytes.into_text().unwrap_or_default()
+}
+
 pub fn get_ascii_from_file(file_path: &Path) -> Result<Text<'static>> {
     let file = File::open(file_path)?;
     let mut buffer = Vec::new();
