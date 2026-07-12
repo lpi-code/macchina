@@ -90,6 +90,16 @@ pub fn write_buffer_to_console(
     let (_, last_y) = find_last_buffer_cell_index(tmp_buffer)
         .expect("An error occurred while writing to the terminal buffer.");
 
+    // When an image is being injected directly to stdout (skip_rect), its
+    // footprint can be taller than whatever text ended up in the buffer
+    // (e.g. a short readout list next to a tall image). If we only reserve
+    // blank lines for the text, the image spills past them into whatever
+    // gets printed next (e.g. the following shell prompt). Reserve enough
+    // blank lines for the image's full height too.
+    let last_y = last_y.max(
+        skip_rect.map_or(0, |r| r.y.saturating_add(r.height).saturating_sub(1)),
+    );
+
     let last_x = find_widest_cell(tmp_buffer, last_y);
 
     print!("{}", "\n".repeat(last_y as usize + 1));
